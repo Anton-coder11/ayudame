@@ -177,14 +177,14 @@ String lastWordLetter;
             } else {
                 tries--;
                 sendMsg(CLIENT_ID, "bad");
-                sendMsg(CLIENT_ID, String.valueOf(tries));
+                sendMsg(CLIENT_ID, "Осталось попыок: " + tries);
                 if(tries <= 0){
-                    sendMsg(CLIENT_ID, "Игра окончена! Спасибо за участие!");
+                    sendMsg(CLIENT_ID, "Игра окончена! Спасибо за участие! Напишите /game если хотите сыграть еще раз.") ;
                     isGameActive = false;
                     lastWordLetter = null;
                     firstRespLetter = null;
                     speak = null;
-
+                    tries = 3;
                 }
 
             }
