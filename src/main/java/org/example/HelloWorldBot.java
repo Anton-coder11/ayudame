@@ -17,7 +17,8 @@ public class HelloWorldBot extends TelegramLongPollingBot {
     public static String MY_CHAT_ID = "753444383";
     public static String CLIENT_ID = "";
     String USERNAME_GLOBAL;
-    // Specify absolute path or relative path from project root
+
+
     private static final String USERS_FILE = "/Users/anton/Desktop/coding/HILEL/JAVA/Pupa/src/main/java/org/example/users.txt";
     private Set<String> allUsers;
     boolean isOwner = CLIENT_ID.equals(MY_CHAT_ID);
@@ -124,8 +125,8 @@ public class HelloWorldBot extends TelegramLongPollingBot {
         }
     }
 
-    // Save users to file
 
+    private int tries = 3;
 
     public  void sendMsg(String chatId, String msg) {
         SendMessage message = new SendMessage();
@@ -163,8 +164,8 @@ String lastWordLetter;
             return;
         }
 
-        int tries = 3;
         if (isGameActive) {
+
             if (String.valueOf(messageText.charAt(0)).equals(lastWordLetter)) {
                 speak = "Nice";
                 word =messageText ;
@@ -174,12 +175,17 @@ String lastWordLetter;
                 sendMsg(CLIENT_ID, "Следующее слово: " + messageText);
 
             } else {
+                tries--;
                 sendMsg(CLIENT_ID, "bad");
-//                for (int i = 3; i >0 ; i--) {
-                    sendMsg(CLIENT_ID, "Осталось попыток: " + tries);
+                sendMsg(CLIENT_ID, String.valueOf(tries));
+                if(tries <= 0){
+                    sendMsg(CLIENT_ID, "Игра окончена! Спасибо за участие!");
+                    isGameActive = false;
+                    lastWordLetter = null;
+                    firstRespLetter = null;
+                    speak = null;
 
-
-
+                }
 
             }
         }
