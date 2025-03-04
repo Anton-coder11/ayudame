@@ -7,6 +7,8 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
+import java.awt.*;
+
 public class HelloWorldBot extends TelegramLongPollingBot {
     public static String MY_CHAT_ID = "753444383";
     public static String CLIENT_ID = "";
@@ -18,6 +20,7 @@ public class HelloWorldBot extends TelegramLongPollingBot {
         sendMsg(MY_CHAT_ID, "Привет!");
 
     }
+    String username_global;
 @Override
 public void onUpdateReceived(Update update) {
     if (update.hasMessage() && update.getMessage().hasText()) {
@@ -25,7 +28,8 @@ public void onUpdateReceived(Update update) {
 
         String messageText = update.getMessage().getText();
         String username = update.getMessage().getFrom().getUserName();
-        System.out.println(MY_CHAT_ID + "Клиентик -  "+CLIENT_ID + " " +  username);
+        username_global="@"+username;
+        System.out.println(MY_CHAT_ID + " Клиентик -  "+CLIENT_ID + " " +  username);
         if(!CLIENT_ID.equals(MY_CHAT_ID)) {
 
             sendMsg(MY_CHAT_ID, " Клиентик -  '"+CLIENT_ID+ "'"+ "'" +username +"' отослал вам сообщение - '"+messageText+"'");
@@ -39,7 +43,7 @@ public void onUpdateReceived(Update update) {
         else if (messageText.equalsIgnoreCase("привет") || messageText.equalsIgnoreCase("привет!")) {
             sendMsg(CLIENT_ID, "Привет!");
         }
-        sendPrivateMsg(CLIENT_ID, messageText, messageText);
+        sendPrivateMsg(CLIENT_ID, messageText);
         game(messageText);
     }
 }
@@ -55,8 +59,8 @@ public void onUpdateReceived(Update update) {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
-    }
-    String lastWordLetter;
+}
+String lastWordLetter;
     String firstRespLetter;
     String speak;
     private boolean isGameActive = false;
@@ -97,132 +101,37 @@ public void onUpdateReceived(Update update) {
     }
     String  id;
     String message;
-//public void sendPrivateMsg(String chatId, String msg,String messageText) {
-//
-//    if (CLIENT_ID.equals(MY_CHAT_ID)&&messageText.equals("/send")) {
-//        sendMsg(chatId, "Кому хотите написать сооббщение? (Введите ID / сообщение)");
-//        String[] parts = messageText.split("/", 2);  // limit=2 to split only on first "/"
-//        if (parts.length == 2) {  // Check if message contains "/"
-//            id = parts[0].trim();  // Get ID (before /)
-//            message = parts[1].trim();  // Get message (after /)
-//            if (messageText.contains("/")) {
-//                sendMsg(id, message);
-//            }
-//        }
-//
-//    }
-//    else {
-//        sendMsg(chatId,"Вы не имеете привелегий такого масштаба");
-//    }
+    boolean isSendable = false;
+public void sendPrivateMsg(String chatId,String messageText ) {
 
+    if (CLIENT_ID.equals(MY_CHAT_ID) && messageText.equals("/send") || isSendable ) {
 
+        String[] parts = messageText.split("/", 2);// limit=2 to split only on first "/"
+        isSendable = true;
 
-//    String message;
-//    if (CLIENT_ID.equals(MY_CHAT_ID)&&messageText.equals("/send")) {
-//        sendMsg(MY_CHAT_ID,"Кому хотите написать сооьбщение (Введите ID)");
-//        return;
-//    }
-//    if (Integer.parseInt(msg) == 1007868278) {
-//        id = Integer.parseInt(msg);
-//        sendMsg(MY_CHAT_ID, "Введите сообщение");
-//        sendMsg(MY_CHAT_ID,msg);
-//
-//        sendMsg(String.valueOf(id), msg);
-//        sendMsg(MY_CHAT_ID, "Сообщение отправлено!");
-//    }
-//    else {
-//        sendMsg(MY_CHAT_ID, "Неверный формат ID. Попробуйте снова /send");
-//
-//    }
-//    else {
-//        sendMsg(CLIENT_ID, "Команда не доступна");
-//        return;
-//    }
-public void sendPrivateMsg(String chatId, String msg, String messageText) {
-    // First check if user has permission
-    if (!CLIENT_ID.equals(MY_CHAT_ID)) {
-        sendMsg(chatId, "Вы не имеете привилегий такого масштаба");
-        return;
-    }
+        if (parts.length == 2) {  // Check if message contains "/"
+            id = parts[0].trim();  // Get ID (before /)
+            message = parts[1].trim();  // Get message (after /)
 
-    // Handle /send command
-    if (messageText.equals("/send")) {
-        sendMsg(chatId, "Введите сообщение в формате: ID/сообщение");
-        return;
-    }
+            if (messageText.contains("/")) {
+                if (!messageText.equals("/send")) {
 
-    // Handle /stop command
-    if (messageText.equals("/stop")) {
-        // Reset any state variables you might have
-        id = null;
-        message = null;
-        sendMsg(chatId, "Отправка сообщений остановлена");
-        return;
-    }
+                    isSendable = false;
+                sendMsg(id, message);
+                sendMsg(MY_CHAT_ID, "Сообщение отправлено!");
+                }
+                else {
+                    sendMsg(chatId, "Кому хотите написать сооббщение? (Введите ID / сообщение)");
+                }
 
-    // Handle messages with ID/message format
-    if (messageText.contains("/")) {
-        String[] parts = messageText.split("/", 2);  // limit=2 to split only on first "/"
-        if (parts.length == 2) {
-            String idPart = parts[0].trim();
-            String messagePart = parts[1].trim();
-
-            if (idPart.matches("\\d+")) {
-                sendMsg(idPart, messagePart);
-                sendMsg(chatId, "Сообщение отправлено!");
-            } else {
-                sendMsg(chatId, "Неверный формат ID. Используйте: ID/сообщение");
             }
         }
-    } else {
-        // Handle normal messages here
-        // You can either ignore them or send a help message
-        sendMsg(chatId, "Для отправки личного сообщения используйте формат: ID/сообщение или команду /send");
+    }
+    else {
+        sendMsg(MY_CHAT_ID, "Пользователь - " + username_global +" попытался использовать заблокировануюю команду");
     }
 }
 
-
-
-}
-
-//    private String waitingForId = null;  // To store the ID we're waiting for
-//    private boolean waitingForMessage = false;  // To track if we're waiting for the message
-//    private String targetId = null;  // To store the target ID
-//
-//    public void sendPrivateMsg(String chatId, String msg, String messageText) {
-//        if (messageText.equals("/sendMSG")) {
-//            waitingForId = chatId;  // Start waiting for ID
-//            sendMsg(chatId, "Кому хотите написать сообщение? (Введите ID)");
-//            return;
-//        }
-//
-//        // If we're waiting for ID and got a response
-//        if (waitingForId != null && waitingForId.equals(chatId)) {
-//            try {
-//                // Try to parse the ID to make sure it's valid
-//                Long.parseLong(messageText);
-//                targetId = messageText;
-//                waitingForId = null;  // Stop waiting for ID
-//                waitingForMessage = true;  // Start waiting for message
-//                sendMsg(chatId, "Введите сообщение:");
-//                return;
-//            } catch (NumberFormatException e) {
-//                sendMsg(chatId, "Неверный формат ID. Попробуйте снова /sendMSG");
-//                waitingForId = null;
-//                return;
-//            }
-//        }
-//
-//        // If we're waiting for the message and got a response
-//        if (waitingForMessage && chatId.equals(chatId)) {
-//            sendMsg(targetId, msg);  // Send message to target ID
-//            sendMsg(chatId, "Сообщение отправлено!");
-//            // Reset all flags
-//            waitingForMessage = false;
-//            targetId = null;
-//            return;
-//        }
-//    }
 
 
     @Override
