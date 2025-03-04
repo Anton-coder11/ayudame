@@ -8,10 +8,12 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.awt.*;
+import java.util.Arrays;
 
 public class HelloWorldBot extends TelegramLongPollingBot {
     public static String MY_CHAT_ID = "753444383";
     public static String CLIENT_ID = "";
+    messageText = update.getMessage().getText();
      public HelloWorldBot(){
          onstart();
 
@@ -26,7 +28,7 @@ public void onUpdateReceived(Update update) {
     if (update.hasMessage() && update.getMessage().hasText()) {
         CLIENT_ID = update.getMessage().getChatId().toString();
 
-        String messageText = update.getMessage().getText();
+
         String username = update.getMessage().getFrom().getUserName();
         username_global="@"+username;
         System.out.println(MY_CHAT_ID + " Клиентик -  "+CLIENT_ID + " " +  username);
@@ -43,13 +45,15 @@ public void onUpdateReceived(Update update) {
         else if (messageText.equalsIgnoreCase("привет") || messageText.equalsIgnoreCase("привет!")) {
             sendMsg(CLIENT_ID, "Привет!");
         }
+        help(CLIENT_ID,messageText);
         sendPrivateMsg(CLIENT_ID, messageText);
         game(messageText);
+
     }
 }
 
 
-    public void sendMsg(String chatId, String msg) {
+    public  void sendMsg(String chatId, String msg) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(msg);
@@ -127,12 +131,20 @@ public void sendPrivateMsg(String chatId,String messageText ) {
             }
         }
     }
-    else {
+    else if(!CLIENT_ID.equals(MY_CHAT_ID)&&messageText.equals("/send")) {
         sendMsg(MY_CHAT_ID, "Пользователь - " + username_global +" попытался использовать заблокировануюю команду");
+        sendMsg(chatId, " у вас недостаточно доступа для использования этой команды");
     }
 }
 
+public void help(String chatId,String messageText){
+    String [] users = usersDb.load().split("\n");
+    if(messageText.equals("/help")){
+        sendMsg(chatId, "Список команд: \n /send - отправить сообщение \n /game - начать игру \n /stop - остановить игру \n /help - список команд");
+        sendMsg(chatId, "Пользователи - \n" + Arrays.toString(users));
 
+    }
+}
 
     @Override
 public String getBotUsername() {
