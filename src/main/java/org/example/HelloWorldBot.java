@@ -7,50 +7,124 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
-import java.awt.*;
+
+import java.io.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Arrays;
 
 public class HelloWorldBot extends TelegramLongPollingBot {
     public static String MY_CHAT_ID = "753444383";
     public static String CLIENT_ID = "";
-    messageText = update.getMessage().getText();
-     public HelloWorldBot(){
-         onstart();
+    String USERNAME_GLOBAL;
+    // Specify absolute path or relative path from project root
+    private static final String USERS_FILE = "/Users/anton/Desktop/coding/HILEL/JAVA/Pupa/src/main/java/org/example/users.txt";
+    private Set<String> allUsers;
+    boolean isOwner = CLIENT_ID.equals(MY_CHAT_ID);
+    public HelloWorldBot() {
+        allUsers = loadUsers();
+        onstart();
+
+    }
+    private Set<String> loadUsers() {
+        Set<String> users = new HashSet<>();
+        File file = new File(USERS_FILE);
+
+        // Create directory if it doesn't exist
+        file.getParentFile().mkdirs();
+
+        try {
+            if (!file.exists()) {
+                file.createNewFile();
+                // Add admin as first user
+                users.add(MY_CHAT_ID);
+                saveUsers(users);
+                System.out.println("Created new users file with admin ID");
+            }
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (!line.trim().isEmpty()) {
+                        users.add(line.trim());
+                        System.out.println("Loaded user: " + line.trim());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading users: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return users;
+    }
+    private void saveUsers(Set<String> users) {
+        try (FileWriter writer = new FileWriter(USERS_FILE)) {
+            for (String userId : users) {
+                writer.write(userId +"\n");
+            }
+            System.out.println("Saved " + users.size() + " users to file");
+        } catch (IOException e) {
+            System.out.println("Error saving users: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    public void onstart() {
+        String startMessage = "Привет! \n" +
+                "Список команд:\n" +
+                "/send - отправить сообщение\n" +
+                "/game - начать игру\n" +
+                "/stop - остановить игру\n" +
+                "/help - список команд";
+
+            for (String userId : allUsers) {
+                try {
+                    sendMsg(userId, startMessage);
+                    Thread.sleep(35); // Avoid Telegram rate limits
+                } catch (Exception e) {
+                    System.out.println("Failed to send startup message to: " + userId);
+                }
+            }
+
 
      }
-    public void onstart() {
-        sendMsg(MY_CHAT_ID, "Привет!");
 
+    @Override
+    public void onUpdateReceived(Update update) {
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            CLIENT_ID = update.getMessage().getChatId().toString();
+            // Add new user if not already in the set
+
+
+            String messageText = update.getMessage().getText();
+            String username = update.getMessage().getFrom().getUserName();
+            USERNAME_GLOBAL="@"+username;
+            if (!allUsers.contains(CLIENT_ID)) {
+                allUsers.add(CLIENT_ID);
+                saveUsers(allUsers);  // Save updated user list
+                System.out.println("New user added: " + CLIENT_ID + " (" + USERNAME_GLOBAL + ")");
+            }
+            System.out.println(MY_CHAT_ID + " Клиентик -  "+CLIENT_ID + " " +  username);
+            if(!CLIENT_ID.equals(MY_CHAT_ID)) {
+
+                sendMsg(MY_CHAT_ID, " Клиентик -  '"+CLIENT_ID+ "'"+ "'" +username +"' отослал вам сообщение - '"+messageText+"'");
+
+            }
+
+            // Check for "Пока" first
+            if (messageText.equalsIgnoreCase("пока") || messageText.equalsIgnoreCase("пока!")) {
+                sendMsg(CLIENT_ID, "Прощай");
+            }
+            else if (messageText.equalsIgnoreCase("привет") || messageText.equalsIgnoreCase("привет!")) {
+                sendMsg(CLIENT_ID, "Привет!");
+            }
+            help(CLIENT_ID,messageText);
+            sendPrivateMsg(CLIENT_ID, messageText);
+            game(messageText);
+
+        }
     }
-    String username_global;
-@Override
-public void onUpdateReceived(Update update) {
-    if (update.hasMessage() && update.getMessage().hasText()) {
-        CLIENT_ID = update.getMessage().getChatId().toString();
 
-
-        String username = update.getMessage().getFrom().getUserName();
-        username_global="@"+username;
-        System.out.println(MY_CHAT_ID + " Клиентик -  "+CLIENT_ID + " " +  username);
-        if(!CLIENT_ID.equals(MY_CHAT_ID)) {
-
-            sendMsg(MY_CHAT_ID, " Клиентик -  '"+CLIENT_ID+ "'"+ "'" +username +"' отослал вам сообщение - '"+messageText+"'");
-
-        }
-
-        // Check for "Пока" first
-        if (messageText.equalsIgnoreCase("пока") || messageText.equalsIgnoreCase("пока!")) {
-            sendMsg(CLIENT_ID, "Прощай");
-        }
-        else if (messageText.equalsIgnoreCase("привет") || messageText.equalsIgnoreCase("привет!")) {
-            sendMsg(CLIENT_ID, "Привет!");
-        }
-        help(CLIENT_ID,messageText);
-        sendPrivateMsg(CLIENT_ID, messageText);
-        game(messageText);
-
-    }
-}
+    // Save users to file
 
 
     public  void sendMsg(String chatId, String msg) {
@@ -60,6 +134,7 @@ public void onUpdateReceived(Update update) {
 
         try {
             execute(message);
+
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
@@ -88,7 +163,7 @@ String lastWordLetter;
             return;
         }
 
-
+        int tries = 3;
         if (isGameActive) {
             if (String.valueOf(messageText.charAt(0)).equals(lastWordLetter)) {
                 speak = "Nice";
@@ -100,6 +175,12 @@ String lastWordLetter;
 
             } else {
                 sendMsg(CLIENT_ID, "bad");
+//                for (int i = 3; i >0 ; i--) {
+                    sendMsg(CLIENT_ID, "Осталось попыток: " + tries);
+
+
+
+
             }
         }
     }
@@ -132,7 +213,7 @@ public void sendPrivateMsg(String chatId,String messageText ) {
         }
     }
     else if(!CLIENT_ID.equals(MY_CHAT_ID)&&messageText.equals("/send")) {
-        sendMsg(MY_CHAT_ID, "Пользователь - " + username_global +" попытался использовать заблокировануюю команду");
+        sendMsg(MY_CHAT_ID, "Пользователь - " + USERNAME_GLOBAL +" попытался использовать заблокировануюю команду");
         sendMsg(chatId, " у вас недостаточно доступа для использования этой команды");
     }
 }
@@ -141,7 +222,10 @@ public void help(String chatId,String messageText){
     String [] users = usersDb.load().split("\n");
     if(messageText.equals("/help")){
         sendMsg(chatId, "Список команд: \n /send - отправить сообщение \n /game - начать игру \n /stop - остановить игру \n /help - список команд");
-        sendMsg(chatId, "Пользователи - \n" + Arrays.toString(users));
+        if (CLIENT_ID.equals(MY_CHAT_ID)){
+            sendMsg(chatId, "Пользователи - \n" + Arrays.toString(users));
+        }
+
 
     }
 }
