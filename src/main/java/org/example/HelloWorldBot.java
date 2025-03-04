@@ -243,7 +243,7 @@ public String getBotUsername() {
 
 @Override
 public String getBotToken() {
-    return "7822239652:AAGA_JKpYhLvMBeg_M8ZnPwyoMDRKln1_f4";
+    return "";
 }
 
 public static void main(String[] args) {
