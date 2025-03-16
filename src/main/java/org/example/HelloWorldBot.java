@@ -14,18 +14,31 @@ import java.util.Set;
 import java.util.Arrays;
 
 public class HelloWorldBot extends TelegramLongPollingBot {
-    public static String MY_CHAT_ID = "753444383";
+    private  String MY_CHAT_ID = "753444383";
+    private  String cooAdmin = "1007868278";
     public static String CLIENT_ID = "";
     String USERNAME_GLOBAL;
+    String lastWordLetter;
+    String firstRespLetter;
+    String speak;
+    private boolean isGameActive = false;
+    String word= "Воробей";
+    private int tries = 3;
+    String  id;
+    String message;
+    boolean isSendable = false;
+    String weatherRequest;
+    private String announcementState = "none";  // Use your existing variable if you have one
 
 
-    private static final String USERS_FILE = "/Users/anton/Desktop/coding/HILEL/JAVA/Pupa/src/main/java/org/example/users.txt";
+
+    private static final String USERS_FILE = "src/main/java/org/example/users.txt";
     private Set<String> allUsers;
     boolean isOwner = CLIENT_ID.equals(MY_CHAT_ID);
     public HelloWorldBot() {
         allUsers = loadUsers();
         onstart();
-
+        sendMsg(MY_CHAT_ID,"Привет, босс!");
     }
     private Set<String> loadUsers() {
         Set<String> users = new HashSet<>();
@@ -48,12 +61,12 @@ public class HelloWorldBot extends TelegramLongPollingBot {
                 while ((line = reader.readLine()) != null) {
                     if (!line.trim().isEmpty()) {
                         users.add(line.trim());
-                        System.out.println("Loaded user: " + line.trim());
+                        System.out.println("Пользователь загруже:" + line.trim());
                     }
                 }
             }
         } catch (IOException e) {
-            System.out.println("Error loading users: " + e.getMessage());
+            System.out.println("Ошибка при загрузке пользователей:" + e.getMessage());
             e.printStackTrace();
         }
         return users;
@@ -63,28 +76,31 @@ public class HelloWorldBot extends TelegramLongPollingBot {
             for (String userId : users) {
                 writer.write(userId +"\n");
             }
-            System.out.println("Saved " + users.size() + " users to file");
+            System.out.println("Сохранено " + users.size() + " пользователей в файл.");
         } catch (IOException e) {
-            System.out.println("Error saving users: " + e.getMessage());
+            System.out.println("Ошибка при сохранении пользователей:" + e.getMessage());
             e.printStackTrace();
         }
     }
     public void onstart() {
-        String startMessage = "Привет! \n" +
-                "Список команд:\n" +
-                "/send - отправить сообщение\n" +
-                "/game - начать игру\n" +
-                "/stop - остановить игру\n" +
-                "/help - список команд";
-
-            for (String userId : allUsers) {
-                try {
-                    sendMsg(userId, startMessage);
-                    Thread.sleep(35); // Avoid Telegram rate limits
-                } catch (Exception e) {
-                    System.out.println("Failed to send startup message to: " + userId);
-                }
-            }
+        if (CLIENT_ID.equals(MY_CHAT_ID)){
+            sendMsg(CLIENT_ID, "Админ онлайн");
+        }
+//        String startMessage = "Привет! \n" +
+//                "Список команд:\n" +
+//                "/send - отправить сообщение\n" +
+//                "/game - начать игру\n" +
+//                "/stop - остановить игру\n" +
+//                "/help - список команд";
+//
+//            for (String userId : allUsers) {
+//                try {
+//                    sendMsg(userId, startMessage);
+//                    Thread.sleep(35); // Avoid Telegram rate limits
+//                } catch (Exception e) {
+//                    System.out.println("Failed to send startup message to: " + userId);
+//                }
+//            }
 
 
      }
@@ -98,16 +114,18 @@ public class HelloWorldBot extends TelegramLongPollingBot {
 
             String messageText = update.getMessage().getText();
             String username = update.getMessage().getFrom().getUserName();
+
             USERNAME_GLOBAL="@"+username;
             if (!allUsers.contains(CLIENT_ID)) {
                 allUsers.add(CLIENT_ID);
                 saveUsers(allUsers);  // Save updated user list
-                System.out.println("New user added: " + CLIENT_ID + " (" + USERNAME_GLOBAL + ")");
+                System.out.println("Новый пользователь: " + CLIENT_ID + " (" + USERNAME_GLOBAL + ")");
             }
-            System.out.println(MY_CHAT_ID + " Клиентик -  "+CLIENT_ID + " " +  username);
+            System.out.println(MY_CHAT_ID + " Клиентик -  "+CLIENT_ID + " " +  USERNAME_GLOBAL);
+
             if(!CLIENT_ID.equals(MY_CHAT_ID)) {
 
-                sendMsg(MY_CHAT_ID, " Клиентик -  '"+CLIENT_ID+ "'"+ "'" +username +"' отослал вам сообщение - '"+messageText+"'");
+                sendMsg(MY_CHAT_ID, " Клиентик -  '"+CLIENT_ID+ "'"+ "'" +USERNAME_GLOBAL +"' отослал вам сообщение - '"+messageText+"'");
 
             }
 
@@ -118,15 +136,25 @@ public class HelloWorldBot extends TelegramLongPollingBot {
             else if (messageText.equalsIgnoreCase("привет") || messageText.equalsIgnoreCase("привет!")) {
                 sendMsg(CLIENT_ID, "Привет!");
             }
+            else if (messageText.equalsIgnoreCase("как дела") || messageText.equalsIgnoreCase("как дела?")) {
+                sendMsg(CLIENT_ID, "Нормально");
+            }
+            else if (messageText.contains("Погода в")){
+                weatherRequest = messageText.replace("Погода в ", "");
+                try {
+                    sendMsg(CLIENT_ID,WeatherMain.getWeather(weatherRequest));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             help(CLIENT_ID,messageText);
             sendPrivateMsg(CLIENT_ID, messageText);
             game(messageText);
+            announce(CLIENT_ID,messageText);
 
         }
     }
 
-
-    private int tries = 3;
 
     public  void sendMsg(String chatId, String msg) {
         SendMessage message = new SendMessage();
@@ -140,11 +168,6 @@ public class HelloWorldBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
 }
-String lastWordLetter;
-    String firstRespLetter;
-    String speak;
-    private boolean isGameActive = false;
-    String word= "Воробей";
     private void game(String messageText) {
 
         if (messageText.equals("/game")) {
@@ -190,12 +213,31 @@ String lastWordLetter;
             }
         }
     }
-    String  id;
-    String message;
-    boolean isSendable = false;
+
+    public void announce(String chatId, String messageText) {
+        if (CLIENT_ID.equals(MY_CHAT_ID)) {
+            if (messageText.equals("/announce")) {
+                announcementState = "waiting";
+                sendMsg(chatId, "Please enter the message you want to announce");
+            }
+            else if (announcementState.equals("waiting")) {
+                announcementState = "none";  // Reset immediately
+                String[] users = usersDb.load().split("\n");
+                for (String userId : users) {
+                    if (userId != null && !userId.trim().isEmpty()) {
+                        sendMsg(userId.trim(), messageText);
+                    }
+                }
+                sendMsg(MY_CHAT_ID, "Announcement sent to all users!");
+            }
+        } else {
+            sendMsg(chatId, "You don't have permission to use this command");
+        }
+    }
+
 public void sendPrivateMsg(String chatId,String messageText ) {
 
-    if (CLIENT_ID.equals(MY_CHAT_ID) && messageText.equals("/send") || isSendable ) {
+    if (CLIENT_ID.equals(MY_CHAT_ID) && messageText.equals("/send") ||CLIENT_ID.equals(cooAdmin)&& messageText.equals("/send") ||isSendable ) {
 
         String[] parts = messageText.split("/", 2);// limit=2 to split only on first "/"
         isSendable = true;
@@ -220,7 +262,7 @@ public void sendPrivateMsg(String chatId,String messageText ) {
     }
     else if(!CLIENT_ID.equals(MY_CHAT_ID)&&messageText.equals("/send")) {
         sendMsg(MY_CHAT_ID, "Пользователь - " + USERNAME_GLOBAL +" попытался использовать заблокировануюю команду");
-        sendMsg(chatId, " у вас недостаточно доступа для использования этой команды");
+        sendMsg(chatId, " У вас недостаточно доступа для использования этой команды");
     }
 }
 
@@ -228,7 +270,7 @@ public void help(String chatId,String messageText){
     String [] users = usersDb.load().split("\n");
     if(messageText.equals("/help")){
         sendMsg(chatId, "Список команд: \n /send - отправить сообщение \n /game - начать игру \n /stop - остановить игру \n /help - список команд");
-        if (CLIENT_ID.equals(MY_CHAT_ID)){
+        if (CLIENT_ID.equals(MY_CHAT_ID) || CLIENT_ID.equals(cooAdmin)){
             sendMsg(chatId, "Пользователи - \n" + Arrays.toString(users));
         }
 
@@ -243,7 +285,7 @@ public String getBotUsername() {
 
 @Override
 public String getBotToken() {
-    return "";
+    return "7822239652:AAGA_JKpYhLvMBeg_M8ZnPwyoMDRKln1_f4";
 }
 
 public static void main(String[] args) {
@@ -264,28 +306,7 @@ class Timer extends Thread{
         start();
     }
 
-    @Override
-    public void run() {
-        int i = 0;
-        while (true){
-            try {
-                if (i==5){
-                    helloWorldBot.sendMsg(HelloWorldBot.MY_CHAT_ID, "привет 5");
-                }
-                if (i==15){
-                    helloWorldBot.sendMsg(HelloWorldBot.MY_CHAT_ID, "привет 15");
-                }
-                if (i==25){
-                    helloWorldBot.sendMsg(HelloWorldBot.MY_CHAT_ID, "привет 25");
-                }
-                i++;
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
 
-        }
-    }
 }
 
 
