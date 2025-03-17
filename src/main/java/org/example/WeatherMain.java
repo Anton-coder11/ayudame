@@ -12,7 +12,7 @@ public class WeatherMain
 {
 
     private static final String API_KEY = "bfebbff956c2f268f300d3bed559e225"; // Замініть на свій ключ API
-    private static final String CITY_NAME = "Dnipro"; // Замініть на назву міста
+    private static final String CITY_NAME = " киев"; // Замініть на назву міста
 
     public static void main(String[] args) {
         try {
@@ -72,6 +72,6 @@ public class WeatherMain
         double windSpeed = wind.getDouble("speed");
         JSONObject weather = json.getJSONArray("weather").getJSONObject(0);
         String description = weather.getString("description");
-        return  String.valueOf("Температура - " + temperature + "\n" +"Влажность - "+ humidity +"\n"+ "Скорость ветра - "+windSpeed+"\n"+"Погода - " +description);
+        return  ("Погода в " + city + ":\n"+"Температура - " + temperature + "\n" +"Влажность - "+ humidity +"\n"+ "Скорость ветра - "+windSpeed+"\n"+"Погода - " +description);
     }
 }
