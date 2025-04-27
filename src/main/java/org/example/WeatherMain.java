@@ -60,7 +60,24 @@ public class WeatherMain
         reader.close();
         return response.toString();
     }
+    public static String capitalizeEachWord(String sentence) {
+        if (sentence == null || sentence.isEmpty()) {
+            return sentence;
+        }
 
+        String[] words = sentence.split("\\s+");
+        StringBuilder result = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                result.append(word.substring(0, 1).toUpperCase())
+                        .append(word.substring(1).toLowerCase())
+                        .append(" ");
+            }
+        }
+
+        return result.toString().trim();
+    }
 
     public static String getWeather(String city) throws IOException {
         String weatherData = getWeatherData(city);
@@ -72,6 +89,6 @@ public class WeatherMain
         double windSpeed = wind.getDouble("speed");
         JSONObject weather = json.getJSONArray("weather").getJSONObject(0);
         String description = weather.getString("description");
-        return  ("Погода в " + city + ":\n"+"Температура - " + temperature + "\n" +"Влажность - "+ humidity +"\n"+ "Скорость ветра - "+windSpeed+"\n"+"Погода - " +description);
+        return  ("Погода в городе - " + capitalizeEachWord(city) + "\n"+"Температура: " + temperature + "\n" +"Влажность: "+ humidity +"\n"+ "Скорость ветра: "+windSpeed+"\n"+"Погода: " +description);
     }
 }

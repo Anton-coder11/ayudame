@@ -1,5 +1,7 @@
 package org.example;
 
+import org.example.TELEGRAM.jokes.apiRequest;
+import org.example.TELEGRAM.translator.Translator;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -28,6 +30,7 @@ public class HelloWorldBot extends TelegramLongPollingBot {
     String message;
     boolean isSendable = false;
     String weatherRequest;
+    boolean joking =true;
     private String announcementState = "none";  // Use your existing variable if you have one
      String [] users = usersDb.load().split("\n");
     boolean weatherIsSendable = false;
@@ -39,6 +42,7 @@ public class HelloWorldBot extends TelegramLongPollingBot {
         allUsers = loadUsers();
         onstart();
         sendMsg(MY_CHAT_ID,"Привет, босс!");
+
     }
     private Set<String> loadUsers() {
         Set<String> users = new HashSet<>();
@@ -61,7 +65,7 @@ public class HelloWorldBot extends TelegramLongPollingBot {
                 while ((line = reader.readLine()) != null) {
                     if (!line.trim().isEmpty()) {
                         users.add(line.trim());
-                        System.out.println("Пользователь загруже:" + line.trim());
+                        System.out.println("Пользователь загружен:" + line.trim());
                     }
                 }
             }
@@ -112,26 +116,30 @@ public class HelloWorldBot extends TelegramLongPollingBot {
 
             }
 
-            // Check for "Пока" first
-            if (messageText.equalsIgnoreCase("пока") || messageText.equalsIgnoreCase("пока!")) {
-                sendMsg(CLIENT_ID, "Прощай");
-            }
-            else if (messageText.equalsIgnoreCase("привет") || messageText.equalsIgnoreCase("привет!")) {
-                sendMsg(CLIENT_ID, "Привет!");
-            }
-            else if (messageText.equalsIgnoreCase("как дела") || messageText.equalsIgnoreCase("как дела?")) {
-                sendMsg(CLIENT_ID, "Нормально");
-            }
+            speaking(messageText);
             getWeather(messageText);
             help(CLIENT_ID,messageText);
             sendPrivateMsg(CLIENT_ID, messageText);
             game(messageText);
-            announce(CLIENT_ID,messageText);
+//            announce(CLIENT_ID,messageText);
+            tellJoke(messageText);
 
         }
     }
 
+    public void speaking(String messageText){
+        // Check for "Пока" first
+        if (messageText.equalsIgnoreCase("пока") || messageText.equalsIgnoreCase("пока!")) {
+            sendMsg(CLIENT_ID, "Прощай");
+        }
+        else if (messageText.equalsIgnoreCase("привет") || messageText.equalsIgnoreCase("привет!")) {
+            sendMsg(CLIENT_ID, "Привет!");
+        }
+        else if (messageText.equalsIgnoreCase("как дела") || messageText.equalsIgnoreCase("как дела?")) {
+            sendMsg(CLIENT_ID, "Нормально");
+        }
 
+    }
     public  void sendMsg(String chatId, String msg) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
@@ -176,7 +184,7 @@ public class HelloWorldBot extends TelegramLongPollingBot {
             } else {
                 tries--;
                 sendMsg(CLIENT_ID, "bad");
-                sendMsg(CLIENT_ID, "Осталось попыок: " + tries);
+                sendMsg(CLIENT_ID, "Осталось попыток: " + tries);
                 if(tries <= 0){
                     sendMsg(CLIENT_ID, "Игра окончена! Спасибо за участие! Напишите /game если хотите сыграть еще раз.") ;
                     isGameActive = false;
@@ -189,12 +197,34 @@ public class HelloWorldBot extends TelegramLongPollingBot {
             }
         }
     }
+    public void tellJoke(String messageText) {
+         if(messageText.equals("/joke")){
+            try {
+                joking = true;
+                sendMsg(CLIENT_ID, apiRequest.getJoke());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 
+         }
+         else if (messageText.equalsIgnoreCase("еще")&& joking==true){
+            try {
+                sendMsg(CLIENT_ID, apiRequest.getJoke());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+         else if (messageText.equalsIgnoreCase("хватит")){
+            sendMsg(CLIENT_ID, "Хорошо , больше не шутим");
+            joking = false;
+        }
+
+    }
     public void announce(String chatId, String messageText) {
         if (CLIENT_ID.equals(MY_CHAT_ID)) {
             if (messageText.equals("/announce")) {
                 announcementState = "waiting";
-                sendMsg(chatId, "Please enter the message you want to announce");
+                sendMsg(chatId, "Пожалуйста введите сообщение которое хотите отослать всем");
             }
             else if (announcementState.equals("waiting")) {
                 announcementState = "none";  // Reset immediately
@@ -204,14 +234,14 @@ public class HelloWorldBot extends TelegramLongPollingBot {
                         sendMsg(userId.trim(), messageText);
                     }
                 }
-                sendMsg(MY_CHAT_ID, "Announcement sent to all users!");
+                sendMsg(MY_CHAT_ID, "Сообщение отправлено всем!");
             }
         } else {
-            sendMsg(chatId, "You don't have permission to use this command");
+            sendMsg(chatId, "У вас нету прав на использование этой команды!");
         }
     }
 
-public void sendPrivateMsg(String chatId,String messageText ) {
+    public void sendPrivateMsg(String chatId,String messageText ) {
 
     if (CLIENT_ID.equals(MY_CHAT_ID) && messageText.equals("/send") ||CLIENT_ID.equals(cooAdmin)&& messageText.equals("/send") ||isSendable ) {
 
@@ -225,7 +255,7 @@ public void sendPrivateMsg(String chatId,String messageText ) {
             if (messageText.contains("/")) {
                 if (!messageText.equals("/send")) {
                     isSendable = false;
-                    sendMsg(id, message);
+                    sendMsg(id, "Администатор отправил вам сообщение: \n" +message);
                     sendMsg(MY_CHAT_ID, "Сообщение отправлено!");
                 }
                 else {
@@ -243,9 +273,9 @@ public void sendPrivateMsg(String chatId,String messageText ) {
     }
 }
 
-public void help(String chatId,String messageText){
+    public void help(String chatId,String messageText){
     if(messageText.equals("/help")){
-        sendMsg(chatId, "Список команд: \n /send - отправить сообщение \n /game - начать игру \n /stop - остановить игру \n /help - список команд");
+        sendMsg(chatId, "Список команд: \n /send - Отправить сообщение \n /game - Начать игру \n /stop - Остановить игру \n /help - Список команд \n /announce - Оповещение пользователей \n /weather - Показывает погоду в выбраном городе");
         if (CLIENT_ID.equals(MY_CHAT_ID) || CLIENT_ID.equals(cooAdmin)){
             sendMsg(chatId, "Пользователи - \n" + Arrays.toString(users));
         }
@@ -253,31 +283,21 @@ public void help(String chatId,String messageText){
 
     }
 }
-public void getWeather(String messageText){
-//    if (messageText.equals("/weather") ||isSendable ) {
-//        isSendable = true;
-//
-//
-//
-//            if (!messageText.equals("/send")) {
-//
-//                isSendable = false;
-//                sendMsg(id, message);
-//                sendMsg(MY_CHAT_ID, "Сообщение отправлено!");
-//            }
-//            else {
-//                sendMsg(chatId, "Кому хотите написать сооббщение? (Введите ID / сообщение)");
-//                sendMsg(chatId, "Пользователи - \n" + Arrays.toString(users));
-//
-//            }
-//
-//
-//
-//    }
+    public void getWeather(String messageText){
     if((messageText.equals("/weather") || weatherIsSendable)){
         if (!messageText.equals("/weather")) {
             weatherIsSendable=false;
-            weatherRequest = messageText;
+            if (isEnglish(messageText)){
+                try {
+                    weatherRequest = Translator.translate(messageText);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else if (isRussian(messageText)){
+                weatherRequest = messageText;
+            }
+
 
             try {
                 sendMsg(CLIENT_ID, WeatherMain.getWeather(weatherRequest));
@@ -295,14 +315,21 @@ public void getWeather(String messageText){
     }
 }
     @Override
-public String getBotUsername() {
+    public String getBotUsername() {
     return "Pupaiaiaiaiiaaaiibot";
 }
 
-@Override
-public String getBotToken() {
+    @Override
+    public String getBotToken() {
     return "7822239652:AAGA_JKpYhLvMBeg_M8ZnPwyoMDRKln1_f4";
 }
+    public boolean isEnglish(String text) {
+        return text.matches("[a-zA-Z\\s]+");
+    }
+
+    public boolean isRussian(String text) {
+        return text.matches("[а-яА-ЯёЁ\\s]+");
+    }
 
 
 
